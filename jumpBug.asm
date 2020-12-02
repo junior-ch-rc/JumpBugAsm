@@ -26,11 +26,20 @@ screenHeight: 	.word 64
 heroColor: 	.word	0xbf4c41	 # vermelho
 backgroundColor:.word	0xffffff	 # branco
 groundColor:    .word	0x809c6d	 # verdinho	
-enemyColor: 	.word	0xad1fbf	 # roxo
+EnemyColor: 	.word	0xad1fbf	 # roxo
 
 #Informações do Herói
 heroHeadX: 	.word 16
-heroHeadY:	.word 27
+heroHeadY:	.word 39
+
+#Inimigo Terrestre
+EnemyHeadX:	.word 48
+EnemyHeadY:	.word 39
+
+#Inimigo Voador
+Enemy2HeadX:	.word 48
+Enemy2HeadY:	.word 18
+
 jump:		.word 119 #pulo
 
 .text
@@ -73,7 +82,7 @@ FillGround:
 Init:
 	li $t0, 16
 	sw $t0, heroHeadX
-	li $t0, 27
+	li $t0, 39
 	sw $t0, heroHeadY
 	li $t0, 119
 	sw $t0, jump
@@ -104,29 +113,58 @@ ClearRegisters:
 ######################################################
 # Desenhando personagem
 ######################################################
+	lw $t5, heroColor
 	addi $a2, $0, 0
 	addi $a3, $0, 48
 	jal DrawHero
 	
+	addi $t7, $0, 0
+	lw $t5, EnemyColor
+	addi $a2, $0, 0
+	addi $a3, $0, 48
+	jal DrawEnemy
 ######################################################
 # Verificação do input no teclado
 ######################################################
 
 #pegando a coordenada atual
 inputCheck:
-	lw $a0, heroHeadX
-	lw $a1, heroHeadY
-	jal CoordinateToAddress
-	add $a2, $v0, $zero
-
+	
 	#Pegando valor digitado no teclado
 	li $t0, 0xffff0000 #salvando endereço do bit ready
 	lw $t1, ($t0) #acessando bit ready
 	andi $t1, $t1, 0x0001 #checando se o bit ready é 1 
-	beqz $t1, inputCheck #Se não tiver input, permanecer
-	lw $a1, 4($t0) #Guarda caractere digitado em $a1	
-	lw $a0, jump # Carregando tecla de jump
-
+	#beqz $t1, inputCheck #Se não tiver input, permanecer
+	
+	li $a0, 100
+	li $v0, 32
+	syscall
+	
+	addi $a2, $0, 0
+	addi $t7, $t7, 0
+	addi $t6, $t6, 0
+	lw $t5, backgroundColor
+	
+	jal DrawEnemy
+	
+	addi $a2, $0, 0
+	addi $t7, $t7, -16
+	addi $t6, $t6, -16
+	lw $t5, EnemyColor
+	
+	jal DrawEnemy
+	
+		
+	lw $t5, backgroundColor
+	addi $a2, $0, -21
+	addi $a3, $0, 48
+	jal DrawHero
+	
+	lw $t5, heroColor
+	addi $a2, $0, 0
+	addi $a3, $0, 48
+	jal DrawHero
+	
 ######################################################
 # Atualizando posição do personagem
 ######################################################	
@@ -138,32 +176,49 @@ DrawUp:
 	#lw $a2, direction
 	#jal CheckGameEndingCollision
 	
+	lw $a1, 0xffff0004 #Guarda caractere digitado em $a1	
+	lw $a0, jump # Carregando tecla de jump
 	bne $a1, $a0, inputCheck
+	sw $0, 0xffff0004
 	#Se a tecla digitada for igual a tecla de jump, desenhar pulo
+	lw $t5, backgroundColor
+	addi $a2, $0, 0
+	addi $a3, $0, 48
+	jal DrawHero
+	
+	lw $t5, heroColor
 	addi $a2, $0, -21
 	addi $a3, $0, 48
 	jal DrawHero
 	
-	lw $a0, heroHeadX
-	addi $a1, $t1, 0
+	addi $a2, $0, 0
+	addi $t7, $t7, 0
+	addi $t6, $t6, 0
+	lw $t5, EnemyColor
 	
-	jal CoordinateToAddress
-	lw $a1, backgroundColor
-	add $a0, $v0, $0
+	jal DrawEnemy
+	
+	#lw $a0, heroHeadX
+	#addi $a1, $t1, 0
+	
+	#jal CoordinateToAddress
+	#lw $a1, backgroundColor
+	#add $a0, $v0, $0
 	
 	#Apagando posição antiga
-	addi $t2, $t2, 1317
+	#addi $t2, $t2, 599
 	
 FillBackground2:
-	beq $t1, $t2, exitDrawUp
-	sw $a1, 0($a0) #armazenando cor
-	addi $t1, $t1, 1
-	addiu $a0, $a0, 4 #incrementando contador
+	#beq $t1, $t2, exitDrawUp
+	#sw $a1, 0($a0) #armazenando cor
+	#addi $t1, $t1, 1
+	#addiu $a0, $a0, 4 #incrementando contador
 	
-	j FillBackground2
+	#j FillBackground2
 	
 	#sw  $t1, heroHeadY
 exitDrawUp:
+
 	j inputCheck #Atualizado, voltar para verificar entrada do teclado
 
 DrawDown:
@@ -206,6 +261,61 @@ DrawPixel:
 	sw $a1, ($a0) 	#preenche a coordenada com o valor	
 	jr $ra		#retorna
 	
+	
+DrawEnemy:
+	lw $t0, EnemyHeadX #carregando coordenada temporaria x
+	lw $t1, EnemyHeadY #carregando coordenada temporaria y
+
+FillEnemyX:
+	add $a0, $t0, $t7 #carregando coordenada x
+	add $a1, $t1, $a2 #carregando coordenada y
+	addi $t6, $0, 58 #carregando valor final da coordenada x do inimigo
+		
+	beq $t0, $t6, Exit #comparando a largura do personagem
+	
+	addi $sp, $sp, -4 #salvando valor de $ra
+	sw $ra, 0($sp)
+			
+	jal FillEnemyY #desenhar personagem
+	
+	lw $ra, 0($sp) #recuperando valor de $ra
+	addi $sp, $sp, 4
+	
+	addi $t0, $t0, 1
+	j FillEnemyX
+			
+FillEnemyY:	
+	add $a0, $t0, $t7 #carregando coordenada x
+	add $a1, $t1, $a2 #carregando coordenada y
+		
+	addi $sp, $sp, -4 #salvando valor de $ra
+	sw $ra, 0($sp)
+								
+	jal CoordinateToAddress #pegando as coordenadas da tela
+	
+	lw $ra, 0($sp) #recuperando valor de $ra
+	addi $sp, $sp, 4
+	
+	move $a0, $v0 #copiando coordenadas para $a0
+	addi $a1, $t5, 0 #colocando a cor do herói em $a1
+	
+	beq $t1, $a3, stopFillEnemy #comparando se já chegou à altura do personagem
+
+	addi $sp, $sp, -4 #salvando valor de $ra
+	sw $ra, 0($sp)
+			
+	jal DrawPixel	#desenhar personagem
+	
+	lw $ra, 0($sp) #recuperando valor de $ra
+	addi $sp, $sp, 4
+	
+	addi $t1, $t1, 1
+	j FillEnemyY
+
+stopFillEnemy:
+	lw $t1, EnemyHeadY #carregando coordenada y
+	jr $ra
+	
 ##################################################################
 #Função DrawHero
 # $a2 -> Valor para deslocar a cabeça do herói
@@ -221,7 +331,7 @@ FillHeroX:
 	add $a0, $t0, $0 #carregando coordenada x
 	add $a1, $t1, $a2 #carregando coordenada y
 		
-	beq $t0, 26, Exit #comparando se a altura do personagem já é 11
+	beq $t0, 26, Exit #comparando a largura do personagem
 	
 	addi $sp, $sp, -4 #salvando valor de $ra
 	sw $ra, 0($sp)
@@ -247,7 +357,7 @@ FillHeroY:
 	addi $sp, $sp, 4
 	
 	move $a0, $v0 #copiando coordenadas para $a0
-	lw $a1, heroColor #colocando a cor do herói em $a1
+	addi $a1, $t5, 0 #colocando a cor do herói em $a1
 	
 	beq $t1, $a3, stopFill #comparando se já chegou à altura do personagem
 
@@ -268,4 +378,3 @@ stopFill:
 
 Exit:
 	jr $ra
-	
