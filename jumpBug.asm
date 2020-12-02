@@ -136,7 +136,7 @@ inputCheck:
 	andi $t1, $t1, 0x0001 #checando se o bit ready é 1 
 	#beqz $t1, inputCheck #Se não tiver input, permanecer
 	
-	li $a0, 100
+	li $a0, 2000
 	li $v0, 32
 	syscall
 	
@@ -147,7 +147,10 @@ inputCheck:
 	
 	jal DrawEnemy
 	
-	addi $a2, $0, 0
+	bne $t7, -48, CanGo
+	addi $t7, $t7, 64
+
+CanGo:	addi $a2, $0, 0
 	addi $t7, $t7, -16
 	addi $t6, $t6, -16
 	lw $t5, EnemyColor
