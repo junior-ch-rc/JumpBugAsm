@@ -88,7 +88,7 @@ FillBackground:
 	addiu $a0, $a0, 4 #incrementando contador
 	j FillBackground
 
-Ground:
+Ground:	
 	addi $t0, $a0, 0
 	lw $a1, groundColor
 	lw $a0, screenWidth
@@ -289,10 +289,9 @@ Continue:
 	#Pegando valor digitado no teclado
 	li $t0, 0xffff0000 #salvando endereço do bit ready
 	lw $t1, ($t0) #acessando bit ready
-	andi $t1, $t1, 0x0001 #checando se o bit ready é 1 
-	#beqz $t1, inputCheck #Se não tiver input, permanecer
+	andi $t1, $t1, 0x0001 #checando se o bit ready é 1
 	
-	#Configurando velocidade dos inimigos
+	#Configurando velocidade dos inimigos (ciclo de execução do programa)
 	li $a0, 500
 	li $v0, 32
 	syscall
@@ -337,12 +336,12 @@ CanGo:	lw $a2, generatedY
 # Atualizando posição do personagem
 ######################################################		
 DrawUp:	
+	#Se a tecla digitada for igual a tecla de jump, desenhar pulo
 	lw $a1, 0xffff0004 #Guarda caractere digitado em $a1	
 	lw $a0, jump # Carregando tecla de jump
 	bne $a1, $a0, inputCheck
 	sw $0, 0xffff0004
 	
-	#Se a tecla digitada for igual a tecla de jump, desenhar pulo
 	#Apagando herói da posição original
 	lw $t5, backgroundColor
 	addi $a2, $0, 0
@@ -666,7 +665,7 @@ Exit:
 	jr $ra
 
 GameOver:
-	# Imprimir no Mars Messages
+	# Imprimir no Mars Messages GameOver
 	li $v0, 4
 	la $a0,	GameOverMsg
 	syscall
